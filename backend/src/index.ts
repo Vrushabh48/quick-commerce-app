@@ -5,6 +5,7 @@ import { authenticateRequest } from "./middleware/authenticateRequest";
 import { authorizeRoles } from "./middleware/authorizeRoles";
 
 import authRoutes from "./auth/routes/auth.routes";
+import userRoutes from "./user/routes/profile.route";
 
 const app = express();
 app.use(express.json());
@@ -28,6 +29,7 @@ app.get("/", (req, res) => {
 
 // 🔴 MOUNT AUTH ROUTES
 app.use("/auth", authRoutes);
+app.use("/user", userRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

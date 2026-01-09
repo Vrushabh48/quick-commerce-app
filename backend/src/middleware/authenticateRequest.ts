@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../lib";
+import { JWT_SECRET } from "../config/env";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 
@@ -36,7 +37,7 @@ export async function authenticateRequest(
     let payload: AccessTokenPayload;
 
     try {
-      payload = jwt.verify(token, ACCESS_TOKEN_SECRET) as AccessTokenPayload;
+      payload = jwt.verify(token, JWT_SECRET) as AccessTokenPayload;
     } catch {
       return res.status(401).json({
         error: "Unauthorized",
@@ -45,6 +46,7 @@ export async function authenticateRequest(
     }
 
     const { sub, sessionId, role } = payload;
+    console.log("Payload:", payload);
 
     if (!sub || !sessionId || !role) {
       return res.status(401).json({

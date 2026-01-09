@@ -67,6 +67,11 @@ export const signup = async (req: Request, res: Response) => {
 
     const accountRole = parseRole(role);
 
+    // ❗ IMPORTANT: never allow ADMIN from public route
+    if (accountRole === Role.ADMIN) {
+      return res.status(403).json({ error: "Forbidden role" });
+    }
+
     const existing = await prisma.account.findUnique({ where: { email } });
     if (existing) {
       return res.status(409).json({ error: "Email already registered" });
@@ -74,22 +79,45 @@ export const signup = async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const account = await prisma.account.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role: accountRole,
-      },
-    });
+    const { account, session } = await prisma.$transaction(async (tx) => {
+      const account = await tx.account.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role: accountRole,
+        },
+      });
 
-    const session = await prisma.session.create({
-      data: {
-        accountId: account.id,
-        refreshToken: "",
-        expiresAt: new Date(
-          Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000
-        ),
-      },
+      switch (accountRole) {
+        case Role.RIDER:
+          await tx.deliveryPartner.create({
+            data: {
+              accountId: account.id,
+              name: "",
+              phone: "",
+              vehicleNo: "",
+            },
+          });
+          break;
+
+        default:
+          await tx.user.create({
+            data: { accountId: account.id },
+          });
+          break;
+      }
+
+      const session = await tx.session.create({
+        data: {
+          accountId: account.id,
+          refreshToken: "",
+          expiresAt: new Date(
+            Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000
+          ),
+        },
+      });
+
+      return { account, session };
     });
 
     const refreshToken = signRefreshToken({
@@ -110,12 +138,10 @@ export const signup = async (req: Request, res: Response) => {
 
     return res.status(201).json({ accessToken, refreshToken });
   } catch (err) {
-    console.error(err);
+    console.error("Signup error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
-
 
 export const login = async (req: Request, res: Response) => {
   try {
