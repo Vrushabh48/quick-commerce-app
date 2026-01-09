@@ -236,3 +236,31 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const { sessionId, accountId } = req.auth!;
+
+    const session = await prisma.session.findFirst({
+      where: {
+        id: sessionId,
+        accountId,
+        revoked: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!session) {
+      return res.status(401).json({ error: "Session not found" });
+    }
+
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: { revoked: true },
+    });
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
