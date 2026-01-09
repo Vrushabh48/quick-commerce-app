@@ -130,13 +130,16 @@ exports.Prisma.AccountScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.Refresh_tokenScalarFieldEnum = {
+exports.Prisma.SessionScalarFieldEnum = {
   id: 'id',
-  token: 'token',
   accountId: 'accountId',
+  refreshToken: 'refreshToken',
   revoked: 'revoked',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  expiresAt: 'expiresAt'
 };
 
 exports.Prisma.UserScalarFieldEnum = {
@@ -148,7 +151,7 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.User_addressScalarFieldEnum = {
+exports.Prisma.UserAddressScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   addressLine: 'addressLine',
@@ -203,8 +206,8 @@ exports.Prisma.InventoryScalarFieldEnum = {
   storeId: 'storeId',
   quantity: 'quantity',
   reservedQuantity: 'reservedQuantity',
-  updatedAt: 'updatedAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.OrderScalarFieldEnum = {
@@ -219,7 +222,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.Order_itemScalarFieldEnum = {
+exports.Prisma.OrderItemScalarFieldEnum = {
   id: 'id',
   orderId: 'orderId',
   productId: 'productId',
@@ -229,7 +232,7 @@ exports.Prisma.Order_itemScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.Order_eventScalarFieldEnum = {
+exports.Prisma.OrderEventScalarFieldEnum = {
   id: 'id',
   orderId: 'orderId',
   fromState: 'fromState',
@@ -250,7 +253,7 @@ exports.Prisma.PaymentScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.Delivery_partnerScalarFieldEnum = {
+exports.Prisma.DeliveryPartnerScalarFieldEnum = {
   id: 'id',
   accountId: 'accountId',
   name: 'name',
@@ -262,7 +265,7 @@ exports.Prisma.Delivery_partnerScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.Delivery_assignmentScalarFieldEnum = {
+exports.Prisma.DeliveryAssignmentScalarFieldEnum = {
   id: 'id',
   orderId: 'orderId',
   partnerId: 'partnerId',
@@ -271,7 +274,7 @@ exports.Prisma.Delivery_assignmentScalarFieldEnum = {
   deliveredAt: 'deliveredAt'
 };
 
-exports.Prisma.Partner_location_logScalarFieldEnum = {
+exports.Prisma.PartnerLocationLogScalarFieldEnum = {
   id: 'id',
   partnerId: 'partnerId',
   latitude: 'latitude',
@@ -336,21 +339,21 @@ exports.DeliveryStatus = exports.$Enums.DeliveryStatus = {
 };
 
 exports.Prisma.ModelName = {
-  account: 'account',
-  refresh_token: 'refresh_token',
-  user: 'user',
-  user_address: 'user_address',
-  store: 'store',
-  category: 'category',
-  product: 'product',
-  inventory: 'inventory',
-  order: 'order',
-  order_item: 'order_item',
-  order_event: 'order_event',
-  payment: 'payment',
-  delivery_partner: 'delivery_partner',
-  delivery_assignment: 'delivery_assignment',
-  partner_location_log: 'partner_location_log'
+  Account: 'Account',
+  Session: 'Session',
+  User: 'User',
+  UserAddress: 'UserAddress',
+  Store: 'Store',
+  Category: 'Category',
+  Product: 'Product',
+  Inventory: 'Inventory',
+  Order: 'Order',
+  OrderItem: 'OrderItem',
+  OrderEvent: 'OrderEvent',
+  Payment: 'Payment',
+  DeliveryPartner: 'DeliveryPartner',
+  DeliveryAssignment: 'DeliveryAssignment',
+  PartnerLocationLog: 'PartnerLocationLog'
 };
 
 /**

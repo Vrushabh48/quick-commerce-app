@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { signup, login, refreshToken } from "../controllers/auth.controller";
-import { signupSchema, loginSchema, refreshSchema } from "../validators/auth.validator";
+import { signupSchema, loginSchema, refreshSchema } from "../validator/auth.validator";
 
 const router = Router();
 
