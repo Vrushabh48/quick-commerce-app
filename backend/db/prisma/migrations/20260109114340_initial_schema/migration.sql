@@ -336,3 +336,10 @@ ALTER TABLE "DeliveryAssignment" ADD CONSTRAINT "DeliveryAssignment_partnerId_fk
 
 -- AddForeignKey
 ALTER TABLE "PartnerLocationLog" ADD CONSTRAINT "PartnerLocationLog_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "DeliveryPartner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- CreateIndex
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX product_name_trgm_idx
+ON "Product"
+USING GIN (name gin_trgm_ops);
