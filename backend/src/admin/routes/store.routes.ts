@@ -21,3 +21,4 @@ router.put(
   updateStore
 );
 
+export default router;

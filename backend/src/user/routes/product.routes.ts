@@ -13,3 +13,5 @@ router.get(
     authorizeRoles(["USER"]),
     searchProductsByName
 );
+
+export default router;
