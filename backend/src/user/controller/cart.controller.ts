@@ -24,12 +24,7 @@ async function recalculateCartTotal(cartId: number) {
 
 export const viewCart = async (req: Request, res: Response) => {
   try {
-    const id = req.auth!.accountId;
-
-    const userId = await prisma.user.findUnique({
-      where: { accountId: id },
-      select: { id: true },
-    }).then(user => user!.id);
+    const userId = req.auth!.userId!;
 
     const cart = await prisma.cart.findUnique({
       where: { userId },
@@ -58,12 +53,7 @@ export const viewCart = async (req: Request, res: Response) => {
 
 export const updateCartItem = async (req: Request, res: Response) => {
   try {
-    const id = req.auth!.accountId;
-
-    const userId = await prisma.user.findUnique({
-      where: { accountId: id },
-      select: { id: true },
-    }).then(user => user!.id);
+    const userId = req.auth!.userId!;
 
     const itemId = Number(req.params.itemId);
     const { quantity } = req.body;
@@ -103,12 +93,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
 
 export const removeCartItem = async (req: Request, res: Response) => {
   try {
-    const id = req.auth!.accountId;
-
-    const userId = await prisma.user.findUnique({
-      where: { accountId: id },
-      select: { id: true },
-    }).then(user => user!.id);
+    const userId = req.auth!.userId!;
     const itemId = Number(req.params.itemId);
 
     const item = await prisma.cartItem.findFirst({
@@ -138,12 +123,7 @@ export const removeCartItem = async (req: Request, res: Response) => {
 
 export const clearCart = async (req: Request, res: Response) => {
   try {
-    const id = req.auth!.accountId;
-
-    const userId = await prisma.user.findUnique({
-      where: { accountId: id },
-      select: { id: true },
-    }).then(user => user!.id);
+    const userId = req.auth!.userId!;
 
     const cart = await prisma.cart.findUnique({
       where: { userId },
@@ -171,12 +151,7 @@ export const clearCart = async (req: Request, res: Response) => {
 
 export const addItemToCart = async (req: Request, res: Response) => {
   try {
-    const id = req.auth!.accountId;
-
-    const userId = await prisma.user.findUnique({
-      where: { accountId: id },
-      select: { id: true },
-    }).then(user => user!.id);
+    const userId = req.auth!.userId!;
 
     const { productId, quantity, storeId } = req.body;
 

@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
 import { authorizeRoles } from "../../middleware/authorizeRoles";
 
 import { deleteUserProfile, getUserProfile, updateUserProfile } from "../controller/profile.controller";

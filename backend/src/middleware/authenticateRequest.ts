@@ -3,16 +3,10 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../lib";
 import { JWT_SECRET } from "../config/env";
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
-
-if (!ACCESS_TOKEN_SECRET) {
-  throw new Error("ACCESS_TOKEN_SECRET is not defined");
-}
-
 type Role = "USER" | "STORE" | "ADMIN" | "RIDER";
 
 interface AccessTokenPayload extends JwtPayload {
-  sub: string;        // accountId (STRING in JWT, parsed to number)
+  sub: string;        // accountId
   sessionId: string;
   role: Role;
 }
@@ -28,7 +22,7 @@ export async function authenticateRequest(
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         error: "Unauthorized",
-        message: "Missing or invalid Authorization header"
+        message: "Missing or invalid Authorization header",
       });
     }
 
@@ -41,31 +35,29 @@ export async function authenticateRequest(
     } catch {
       return res.status(401).json({
         error: "Unauthorized",
-        message: "Invalid or expired access token"
+        message: "Invalid or expired access token",
       });
     }
 
     const { sub, sessionId, role } = payload;
-    console.log("Payload:", payload);
 
     if (!sub || !sessionId || !role) {
       return res.status(401).json({
         error: "Unauthorized",
-        message: "Malformed access token"
+        message: "Malformed access token",
       });
     }
 
     const accountId = Number(sub);
-
-    if (Number.isNaN(accountId)) {
+    if (!Number.isInteger(accountId)) {
       return res.status(401).json({
         error: "Unauthorized",
-        message: "Invalid token subject"
+        message: "Invalid token subject",
       });
     }
 
     const session = await prisma.session.findUnique({
-      where: { id: sessionId }
+      where: { id: sessionId },
     });
 
     if (
@@ -76,22 +68,79 @@ export async function authenticateRequest(
     ) {
       return res.status(401).json({
         error: "Unauthorized",
-        message: "Session invalid or expired"
+        message: "Session invalid or expired",
       });
     }
 
-    // Attach authenticated context
+    // ---- ROLE-BASED ENTITY RESOLUTION ----
+    let userId: number | undefined;
+    let storeId: number | undefined;
+    let partnerId: number | undefined;
+
+    if (role === "USER") {
+      const user = await prisma.user.findUnique({
+        where: { accountId },
+        select: { id: true },
+      });
+
+      if (!user) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "User account not found",
+        });
+      }
+
+      userId = user.id;
+    }
+
+    if (role === "STORE") {
+      const store = await prisma.store.findUnique({
+        where: { accountId },
+        select: { id: true },
+      });
+
+      if (!store) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Store account not found",
+        });
+      }
+
+      storeId = store.id;
+    }
+
+    if (role === "RIDER") {
+      const rider = await prisma.deliveryPartner.findUnique({
+        where: { accountId },
+        select: { id: true },
+      });
+
+      if (!rider) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "Rider account not found",
+        });
+      }
+
+      partnerId = rider.id;
+    }
+
+    // Attach auth context
     req.auth = {
       accountId,
       role,
-      sessionId
+      sessionId,
+      userId,
+      storeId,
+      partnerId,
     };
 
     next();
-  } catch {
+  } catch (err) {
+    console.error("Auth Middleware Error:", err);
     return res.status(500).json({
       error: "InternalServerError",
-      message: "Authentication middleware failure"
+      message: "Authentication middleware failure",
     });
   }
 }

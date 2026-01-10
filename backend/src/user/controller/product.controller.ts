@@ -12,8 +12,14 @@ export const getProducts = async (req: Request, res: Response) => {
       limit = "20",
     } = req.query;
 
-    const pageNumber = Math.max(Number(page), 1);
-    const pageSize = Math.min(Number(limit), 50); // hard cap
+    const pageNumber = Number.isInteger(Number(page)) && Number(page) > 0
+      ? Number(page)
+      : 1;
+
+    const pageSize = Number.isInteger(Number(limit)) && Number(limit) > 0
+      ? Math.min(Number(limit), 50)
+      : 20;
+
 
     const where: any = {
       isActive: true,
@@ -29,8 +35,22 @@ export const getProducts = async (req: Request, res: Response) => {
 
     if (minPrice || maxPrice) {
       where.price = {};
-      if (minPrice) where.price.gte = Number(minPrice);
-      if (maxPrice) where.price.lte = Number(maxPrice);
+      if (minPrice) {
+        const min = Number(minPrice);
+        if (Number.isNaN(min)) {
+          return res.status(400).json({ error: "Invalid minPrice" });
+        }
+        where.price.gte = min;
+      }
+
+      if (maxPrice) {
+        const max = Number(maxPrice);
+        if (Number.isNaN(max)) {
+          return res.status(400).json({ error: "Invalid maxPrice" });
+        }
+        where.price.gte = max;
+      }
+
     }
 
     if (inStock === "true") {

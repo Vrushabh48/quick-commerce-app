@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../../lib";
-import { assignRider } from "./dispatch.service";
+import { assignRider } from "../../delivery/service/dispatch.service";
 
 export const incomingOrders = async (req: Request, res: Response) => {
     try {

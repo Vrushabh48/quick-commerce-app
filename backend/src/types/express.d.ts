@@ -7,6 +7,9 @@ declare global {
         accountId: number;
         role: "USER" | "STORE" | "ADMIN" | "RIDER";
         sessionId: string;
+        userId?: number;
+        storeId?: number;
+        partnerId?: number;
       };
     }
   }
