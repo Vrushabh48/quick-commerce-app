@@ -282,6 +282,25 @@ exports.Prisma.PartnerLocationLogScalarFieldEnum = {
   loggedAt: 'loggedAt'
 };
 
+exports.Prisma.CartScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  storeId: 'storeId',
+  total: 'total',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CartItemScalarFieldEnum = {
+  id: 'id',
+  cartId: 'cartId',
+  productId: 'productId',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -353,7 +372,9 @@ exports.Prisma.ModelName = {
   Payment: 'Payment',
   DeliveryPartner: 'DeliveryPartner',
   DeliveryAssignment: 'DeliveryAssignment',
-  PartnerLocationLog: 'PartnerLocationLog'
+  PartnerLocationLog: 'PartnerLocationLog',
+  Cart: 'Cart',
+  CartItem: 'CartItem'
 };
 
 /**
