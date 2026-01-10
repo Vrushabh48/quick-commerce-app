@@ -137,6 +137,7 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
 
 export const DeliveryStatus: {
+  SEARCHING: 'SEARCHING',
   ASSIGNED: 'ASSIGNED',
   PICKED_UP: 'PICKED_UP',
   DELIVERED: 'DELIVERED',

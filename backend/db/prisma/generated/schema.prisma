@@ -36,6 +36,7 @@ enum PaymentStatus {
 }
 
 enum DeliveryStatus {
+  SEARCHING
   ASSIGNED
   PICKED_UP
   DELIVERED

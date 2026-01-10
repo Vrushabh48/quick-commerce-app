@@ -351,6 +351,7 @@ exports.PaymentStatus = exports.$Enums.PaymentStatus = {
 };
 
 exports.DeliveryStatus = exports.$Enums.DeliveryStatus = {
+  SEARCHING: 'SEARCHING',
   ASSIGNED: 'ASSIGNED',
   PICKED_UP: 'PICKED_UP',
   DELIVERED: 'DELIVERED',
