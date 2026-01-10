@@ -3,23 +3,34 @@ import { prisma } from "../../lib";
 
 
 export const getStoreOrders = async (req: Request, res: Response) => {
-    try {
-        const storeId = Number(req.params.storeId);
-        const orders = await prisma.order.findMany({
-            where: {
-                storeId: storeId,
-            },
-            include: {
-                items: true,
-                store: true,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-        }); 
-        return res.status(200).json(orders);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Internal server error" });
+  try {
+    const storeId = req.auth!.storeId;
+
+    if (!storeId) {
+      return res.status(403).json({ error: "Store context missing" });
     }
-}
+
+    const orders = await prisma.order.findMany({
+      where: { storeId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        totalAmount: true,
+        createdAt: true,
+        items: {
+          select: {
+            productId: true,
+            quantity: true,
+            priceAtPurchase: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Get Store Orders Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

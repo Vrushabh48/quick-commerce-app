@@ -3,9 +3,7 @@ import { prisma } from "../../lib";
 
 export const addNewProduct = async (req: Request, res: Response) => {
     try {
-        const accountId = Number(req.auth!.accountId);
         const { name, description, price, categoryId } = req.body;
-
 
         const newProduct = await prisma.product.create({
             data: {
