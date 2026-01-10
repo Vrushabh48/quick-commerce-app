@@ -46,6 +46,7 @@ export function signRefreshToken(params: {
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { prisma } from "../../lib";
+import { hashToken, REFRESH_COOKIE_OPTIONS, verifyRefreshToken } from "./tokens";
 
 const allowedRoles = Object.values(Role);
 type RoleValue = (typeof allowedRoles)[number];
@@ -56,7 +57,6 @@ function parseRole(input: unknown): Role {
   }
   return Role.USER;
 }
-
 export const signup = async (req: Request, res: Response) => {
   try {
     const { email, password, role } = req.body;
@@ -66,8 +66,6 @@ export const signup = async (req: Request, res: Response) => {
     }
 
     const accountRole = parseRole(role);
-
-    // ❗ IMPORTANT: never allow ADMIN from public route
     if (accountRole === Role.ADMIN) {
       return res.status(403).json({ error: "Forbidden role" });
     }
@@ -77,34 +75,24 @@ export const signup = async (req: Request, res: Response) => {
       return res.status(409).json({ error: "Email already registered" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const { account, session } = await prisma.$transaction(async (tx) => {
       const account = await tx.account.create({
-        data: {
-          email,
-          password: hashedPassword,
-          role: accountRole,
-        },
+        data: { email, password: hashedPassword, role: accountRole },
       });
 
-      switch (accountRole) {
-        case Role.RIDER:
-          await tx.deliveryPartner.create({
-            data: {
-              accountId: account.id,
-              name: "",
-              phone: "",
-              vehicleNo: "",
-            },
-          });
-          break;
-
-        default:
-          await tx.user.create({
-            data: { accountId: account.id },
-          });
-          break;
+      if (accountRole === Role.RIDER) {
+        await prisma.deliveryPartner.create({
+          data: {
+            accountId: account.id,
+            name: "",
+            phone: "",
+            vehicleNo: "",
+          },
+        });
+      } else {
+        await tx.user.create({ data: { accountId: account.id } });
       }
 
       const session = await tx.session.create({
@@ -112,7 +100,7 @@ export const signup = async (req: Request, res: Response) => {
           accountId: account.id,
           refreshToken: "",
           expiresAt: new Date(
-            Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000
+            Date.now() + REFRESH_EXPIRES_DAYS * 86400000
           ),
         },
       });
@@ -127,8 +115,10 @@ export const signup = async (req: Request, res: Response) => {
 
     await prisma.session.update({
       where: { id: session.id },
-      data: { refreshToken },
+      data: { refreshToken: hashToken(refreshToken) },
     });
+
+    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
 
     const accessToken = signAccessToken({
       accountId: account.id,
@@ -136,7 +126,7 @@ export const signup = async (req: Request, res: Response) => {
       sessionId: session.id,
     });
 
-    return res.status(201).json({ accessToken, refreshToken });
+    return res.status(201).json({ accessToken });
   } catch (err) {
     console.error("Signup error:", err);
     return res.status(500).json({ error: "Internal server error" });
@@ -152,8 +142,8 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const passwordOk = await bcrypt.compare(password, account.password);
-    if (!passwordOk) {
+    const ok = await bcrypt.compare(password, account.password);
+    if (!ok) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -162,7 +152,7 @@ export const login = async (req: Request, res: Response) => {
         accountId: account.id,
         refreshToken: "",
         expiresAt: new Date(
-          Date.now() + REFRESH_EXPIRES_DAYS * 24 * 60 * 60 * 1000
+          Date.now() + REFRESH_EXPIRES_DAYS * 86400000
         ),
       },
     });
@@ -174,8 +164,10 @@ export const login = async (req: Request, res: Response) => {
 
     await prisma.session.update({
       where: { id: session.id },
-      data: { refreshToken },
+      data: { refreshToken: hashToken(refreshToken) },
     });
+
+    res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
 
     const accessToken = signAccessToken({
       accountId: account.id,
@@ -183,7 +175,7 @@ export const login = async (req: Request, res: Response) => {
       sessionId: session.id,
     });
 
-    return res.json({ accessToken, refreshToken });
+    return res.json({ accessToken });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
@@ -191,16 +183,16 @@ export const login = async (req: Request, res: Response) => {
 };
 
 
-export const refreshToken = async (req: Request, res: Response) => {
+export const refresh = async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      return res.status(400).json({ error: "refreshToken required" });
+    const token = String(req.cookies.refreshToken);
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     let payload: JwtPayload;
     try {
-      payload = jwt.verify(refreshToken, REFRESH_SECRET) as JwtPayload;
+      payload = verifyRefreshToken(token);
     } catch {
       return res.status(401).json({ error: "Invalid refresh token" });
     }
@@ -208,42 +200,30 @@ export const refreshToken = async (req: Request, res: Response) => {
     const accountId = Number(payload.sub);
     const sessionId = payload.sessionId as string;
 
-    if (!accountId || !sessionId) {
-      return res.status(401).json({ error: "Invalid refresh token" });
-    }
-
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
-    });
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
 
     if (
       !session ||
       session.revoked ||
       session.expiresAt < new Date() ||
       session.accountId !== accountId ||
-      session.refreshToken !== refreshToken
+      session.refreshToken !== hashToken(token)
     ) {
       return res.status(401).json({ error: "Invalid refresh token" });
     }
 
-    const newRefreshToken = signRefreshToken({
-      accountId,
-      sessionId,
-    });
+    const newRefreshToken = signRefreshToken({ accountId, sessionId });
 
     await prisma.session.update({
       where: { id: sessionId },
-      data: {
-        refreshToken: newRefreshToken,
-      },
+      data: { refreshToken: hashToken(newRefreshToken) },
     });
 
-    const account = await prisma.account.findUnique({
-      where: { id: accountId },
-    });
+    res.cookie("refreshToken", newRefreshToken, REFRESH_COOKIE_OPTIONS);
 
+    const account = await prisma.account.findUnique({ where: { id: accountId } });
     if (!account || !account.isActive) {
-      return res.status(401).json({ error: "Invalid refresh token" });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const accessToken = signAccessToken({
@@ -252,10 +232,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       sessionId,
     });
 
-    return res.json({
-      accessToken,
-      refreshToken: newRefreshToken,
-    });
+    return res.json({ accessToken });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Internal server error" });
@@ -266,27 +243,18 @@ export const logout = async (req: Request, res: Response) => {
   try {
     const { sessionId, accountId } = req.auth!;
 
-    const session = await prisma.session.findFirst({
-      where: {
-        id: sessionId,
-        accountId,
-        revoked: false,
-        expiresAt: { gt: new Date() },
-      },
-    });
-
-    if (!session) {
-      return res.status(401).json({ error: "Session not found" });
-    }
-
-    await prisma.session.update({
-      where: { id: sessionId },
+    await prisma.session.updateMany({
+      where: { id: sessionId, accountId },
       data: { revoked: true },
     });
 
-    return res.status(200).json({ message: "Logged out successfully" });
+    res.clearCookie("refreshToken", {
+      path: "/auth/refresh",
+    });
+
+    return res.json({ message: "Logged out" });
   } catch (err) {
-    console.error("Logout error:", err);
+    console.error(err);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

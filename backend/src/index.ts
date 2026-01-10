@@ -14,12 +14,14 @@ import adminProductRoutes from "./admin/routes/product.routes";
 import adminStoreRoutes from "./admin/routes/store.routes";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err);

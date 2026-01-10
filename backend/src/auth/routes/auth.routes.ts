@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { signup, login, refreshToken, logout } from "../controllers/auth.controller";
-import { signupSchema, loginSchema, refreshSchema } from "../validator/auth.validator";
+import { signup, login, logout, refresh } from "../controllers/auth.controller";
+import { signupSchema, loginSchema } from "../validator/auth.validator";
 import { requireAuth } from "../../middleware/requireAuth";
 
 const router = Router();
@@ -18,7 +18,7 @@ function validate(schema: any) {
 
 router.post("/signup", validate(signupSchema), signup);
 router.post("/login", validate(loginSchema), login);
-router.post("/refresh", validate(refreshSchema), refreshToken);
+router.post("/refresh", refresh);
 router.post("/logout", requireAuth, logout);
 
 export default router;
