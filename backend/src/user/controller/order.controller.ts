@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../../lib";
 
-export const checkoutCart = async (req: Request, res: Response) => {
+export const createOrder = async (req: Request, res: Response) => {
   const id = req.auth!.accountId;
 
     const userId = await prisma.user.findUnique({
@@ -68,44 +68,6 @@ export const checkoutCart = async (req: Request, res: Response) => {
         },
       });
 
-      // 5. Create order items & decrement inventory
-      for (const item of cart.items) {
-        await tx.orderItem.create({
-          data: {
-            orderId: order.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            priceAtPurchase: item.unitPrice,
-          },
-        });
-
-        const updated = await tx.inventory.update({
-          where: {
-            productId_storeId: {
-              productId: item.productId,
-              storeId: cart.storeId,
-            },
-          },
-          data: {
-            quantity: { decrement: item.quantity },
-          },
-        });
-
-        if (!updated) {
-          throw new Error("Inventory update failed");
-        }
-      }
-
-      // 6. Clear cart
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id },
-      });
-
-      await tx.cart.update({
-        where: { id: cart.id },
-        data: { total: 0 },
-      });
-
       return order;
     });
 
@@ -120,3 +82,45 @@ export const checkoutCart = async (req: Request, res: Response) => {
     return res.status(409).json({ error: err.message });
   }
 };
+
+const orderPayment = async (req: Request, res: Response) => {
+  // To be implemented
+
+  // 5. Create order items & decrement inventory
+    //   for (const item of cart.items) {
+    //     await tx.orderItem.create({
+    //       data: {
+    //         orderId: order.id,
+    //         productId: item.productId,
+    //         quantity: item.quantity,
+    //         priceAtPurchase: item.unitPrice,
+    //       },
+    //     });
+
+    //     const updated = await tx.inventory.update({
+    //       where: {
+    //         productId_storeId: {
+    //           productId: item.productId,
+    //           storeId: cart.storeId,
+    //         },
+    //       },
+    //       data: {
+    //         quantity: { decrement: item.quantity },
+    //       },
+    //     });
+
+    //     if (!updated) {
+    //       throw new Error("Inventory update failed");
+    //     }
+    //   }
+
+    //   // 6. Clear cart
+    //   await tx.cartItem.deleteMany({
+    //     where: { cartId: cart.id },
+    //   });
+
+    //   await tx.cart.update({
+    //     where: { id: cart.id },
+    //     data: { total: 0 },
+    //   });
+}
