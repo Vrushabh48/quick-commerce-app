@@ -4,6 +4,9 @@ import { prisma } from "../../lib";
 export const getProductInventory = async (req: Request, res: Response) => {
   try {
     const productId = Number(req.params.productId);
+    if (!Number.isInteger(productId)) {
+      return res.status(400).json({ error: "Invalid productId" });
+    }
 
     const inventory = await prisma.inventory.findMany({
       where: { productId },
@@ -60,7 +63,11 @@ export const getInventoryDetails = async (req: Request, res: Response) => {
 
 export const updateInventoryQuantity = async (req: Request, res: Response) => {
   try {
-    const inventoryId =Number(req.params.inventoryId);
+    const inventoryId = Number(req.params.inventoryId);
+    if (!Number.isInteger(inventoryId)) {
+  return res.status(400).json({ error: "Invalid Inventory" });
+}
+
     const quantity = Number(req.body.quantity);
 
     if (!Number.isInteger(quantity) || quantity < 0) {

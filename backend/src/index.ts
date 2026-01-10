@@ -4,7 +4,7 @@ dotenv.config();
 
 import authRoutes from "./auth/routes/auth.routes";
 import userRoutes from "./user/routes/profile.route";
-// import storeRoutes from "./store/routes/store.routes";
+import storeRoutes from "./store/routes/store.routes";
 // import deliveryRoutes from "./delivery/routes/delivery.routes";
 
 const app = express();
@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/store", storeRoutes);
-app.use("/delivery", deliveryRoutes);
+// app.use("/delivery", deliveryRoutes);
 // app.use("/admin", adminRoutes);
 
 app.listen(PORT, () => {
