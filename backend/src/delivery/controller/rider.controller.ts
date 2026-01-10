@@ -53,35 +53,68 @@ export async function acceptDelivery(orderId: number, riderId: number) {
 
 export const updateActiveStatus = async (req: Request, res: Response) => {
   try {
-    const riderId = Number(req.params.riderId);
+    const riderId = req.auth!.partnerId!;
     const { isActive } = req.body;
-    return prisma.deliveryPartner.update({
-    where: { id: riderId },
-    data: { isActive },
-  });
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({ error: "isActive must be boolean" });
+    }
+
+    const rider = await prisma.deliveryPartner.update({
+      where: { id: riderId },
+      data: { isActive },
+    });
+
+    return res.status(200).json(rider);
   } catch (error) {
-    console.error(error);  
+    console.error("Update Rider Status Error:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
+
 
 export const completeDelivery = async (req: Request, res: Response) => {
   try {
-    const { assignmentId } = req.params;
+    const assignmentId = Number(req.params.assignmentId);
+    const riderId = req.auth!.partnerId!;
 
-    const assignment = await prisma.deliveryAssignment.update({
-      where: { id: Number(assignmentId) },
-      data: { status: "DELIVERED" },
-    }); 
+    const result = await prisma.$transaction(async (tx) => {
+      const assignment = await tx.deliveryAssignment.findUnique({
+        where: { id: assignmentId },
+      });
 
-    const order = await prisma.order.update({
-      where: { id: assignment.orderId },
-      data: { status: "DELIVERED" },
+      if (!assignment || assignment.partnerId !== riderId) {
+        throw new Error("Unauthorized delivery completion");
+      }
+
+      if (assignment.status !== "ASSIGNED") {
+        throw new Error("Delivery not active");
+      }
+
+      await tx.deliveryAssignment.update({
+        where: { id: assignmentId },
+        data: {
+          status: "DELIVERED",
+          deliveredAt: new Date(),
+        },
+      });
+
+      await tx.order.update({
+        where: { id: assignment.orderId },
+        data: { status: "DELIVERED" },
+      });
+
+      await tx.deliveryPartner.update({
+        where: { id: riderId },
+        data: { isAvailable: true },
+      });
+
+      return assignment;
     });
 
-    return res.status(200).json(order);
-  }     catch (error) {
-    console.error(error);  
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Complete Delivery Error:", error);
+    return res.status(400).json({ error: error.message });
   }
-}
+};
