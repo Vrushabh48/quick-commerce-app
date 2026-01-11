@@ -3,7 +3,9 @@ import { prisma } from "../../lib";
 
 export const addNewStore = async (req: Request, res: Response) => {
   try {
-    const { name, address, latitude, longitude, accountId } = req.body;
+    const accountId = req.auth!.accountId;
+
+    const { name, address, latitude, longitude } = req.body;
 
     if (
       !name ||

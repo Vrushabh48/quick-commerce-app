@@ -17,7 +17,7 @@ router.post(
 router.put(
   "/store",
   authenticateRequest,
-  authorizeRoles(["STORE"]),
+  authorizeRoles(["STORE", "ADMIN"]),
   updateStore
 );
 
