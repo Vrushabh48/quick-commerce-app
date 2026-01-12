@@ -78,7 +78,9 @@ export const updateCartItem = async (req: Request, res: Response) => {
 
     await prisma.cartItem.update({
       where: { id: itemId },
-      data: { quantity },
+      data: { quantity: {
+        increment: quantity
+      } },
     });
 
     const updatedCart = await recalculateCartTotal(item.cartId);
@@ -107,9 +109,15 @@ export const removeCartItem = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Cart item not found" });
     }
 
-    await prisma.cartItem.delete({
-      where: { id: itemId },
-    });
+    await prisma.cartItem.update({
+  where: { id: itemId },
+  data: {
+    quantity: {
+      decrement: 1, // positive integer
+    },
+  },
+});
+
 
     const updatedCart = await recalculateCartTotal(item.cartId);
 

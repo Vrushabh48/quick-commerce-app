@@ -22,7 +22,8 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
 //update user profile
 export const updateUserProfile = async (req: Request, res: Response) => {
-    const { accountId } = req.auth!;
+    try {
+        const { accountId } = req.auth!;
     const { name, phone } = req.body;
 
     const user = await prisma.user.update({
@@ -34,6 +35,9 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     });
 
     return res.json(user);
+    } catch (error) {
+        return res.status(500).json({ error: "Failed to update user profile" });
+    }
 };
 
 //delete user profile

@@ -3,12 +3,20 @@ import {
   getUserAddresses,
   updateUserAddress,
   deleteUserAddress,
+  createUserAddress,
 } from "../controller/address.controller";
 import { authenticateRequest } from "../../middleware/authenticateRequest";
 import { authorizeRoles } from "../../middleware/authorizeRoles";
 
 const router = Router();
 
+// GET /addresses
+router.post(
+  "/address/create",
+  authenticateRequest,
+  authorizeRoles(["USER"]),
+  createUserAddress
+);
 
 // GET /addresses
 router.get(

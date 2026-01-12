@@ -1,6 +1,56 @@
 import { Request, Response } from "express";
 import { prisma } from "../../lib";
 
+export const createUserAddress = async (req: Request, res: Response) => {
+    try {
+        const { accountId } = req.auth!;
+        const {
+            addressLine,
+            city,
+            state,
+            pincode,
+            country,
+            landmark,
+            instructions,
+            contactPhone,
+            isDefault,
+        } = req.body;
+
+        // 1️⃣ If isDefault is true, unset other default addresses    
+        const newAddress = await prisma.$transaction(async (tx) => {
+            if (isDefault === true) {
+                await tx.userAddress.updateMany({
+                    where: {
+                        user: { accountId },
+                        isDefault: true,
+                    },
+                    data: { isDefault: false },
+                });
+            }
+            // 2️⃣ Create new address
+            return tx.userAddress.create({
+                data: {
+                    addressLine,
+                    city,
+                    state,
+                    pincode,
+                    country,
+                    landmark,
+                    instructions,
+                    contactPhone,
+                    isDefault,
+                    user: { connect: { accountId } },
+                },
+            });
+        }
+        );
+
+        return res.status(201).json(newAddress);
+    } catch (err) {
+        console.error("Create address error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
 
 export const getUserAddresses = async (req: Request, res: Response) => {
     const { accountId } = req.auth!;
