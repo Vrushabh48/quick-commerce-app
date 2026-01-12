@@ -4,9 +4,9 @@ import { prisma } from "../../lib";
 
 export const getStoreOrders = async (req: Request, res: Response) => {
   try {
-    const storeId = req.auth!.storeId;
-
-    if (!storeId) {
+    const accountId = req.auth!.accountId;
+    const storeId = req.body.storeId;
+    if (!accountId || !storeId) {
       return res.status(403).json({ error: "Store context missing" });
     }
 

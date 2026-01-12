@@ -1,10 +1,18 @@
 import { Router } from "express";
 import { authenticateRequest } from "../../middleware/authenticateRequest";
 import { authorizeRoles } from "../../middleware/authorizeRoles";
-import { addNewProduct, deliveryPartnerDetails, deliverypartners, inventoryDetails, storeInventoryDetails } from "../controller/product.controller";
+import { addNewProduct, createProductCategory, deliveryPartnerDetails, deliverypartners, inventoryDetails, storeInventoryDetails } from "../controller/product.controller";
 
 
 const router = Router();
+
+// POST /products
+router.post(
+  "/category",
+  authenticateRequest,
+  authorizeRoles(["ADMIN"]),
+  createProductCategory,
+);
 
 // POST /products
 router.post(

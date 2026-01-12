@@ -68,19 +68,20 @@ export const addNewStore = async (req: Request, res: Response) => {
 
 export const updateStore = async (req: Request, res: Response) => {
   try {
-    const storeId = req.auth!.storeId;
+    const accountId = req.auth!.accountId;
 
-    if (!storeId) {
+    if (!accountId) {
       return res.status(403).json({ error: "Store context missing" });
     }
 
-    const { name, address, latitude, longitude } = req.body;
+    const { name, address, latitude, longitude, storeId } = req.body;
 
     if (
       !name ||
       !address ||
       typeof latitude !== "number" ||
-      typeof longitude !== "number"
+      typeof longitude !== "number" ||
+      !storeId
     ) {
       return res.status(400).json({ error: "Invalid or missing fields" });
     }

@@ -1,6 +1,27 @@
 import { Request, Response } from "express";
 import { prisma } from "../../lib";
 
+export const createProductCategory = async (req: Request, res: Response) => {
+    try {
+        const { name, description } = req.body;
+
+        if (!name || !description) {
+            return res.status(400).json({ error: "Name and description are required" });
+        }
+
+        const newCategory = await prisma.category.create({
+            data: {
+                name,
+                description,
+            },
+        });
+        return res.status(201).json(newCategory);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
 export const addNewProduct = async (req: Request, res: Response) => {
     try {
         const { name, description, price, categoryId } = req.body;
