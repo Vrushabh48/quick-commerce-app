@@ -35,9 +35,8 @@ export const CreateStoreAccount = async (req: Request, res: Response) => {
 
 export const addNewStore = async (req: Request, res: Response) => {
   try {
-    const accountId = req.auth!.accountId;
 
-    const { name, address, latitude, longitude } = req.body;
+    const { name, address, latitude, longitude, accountId } = req.body;
 
     if (
       !name ||

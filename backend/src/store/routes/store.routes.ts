@@ -3,6 +3,7 @@ import {
   getProductInventory,
   getInventoryDetails,
   updateInventoryQuantity,
+  createInventoryRecord,
 } from "../controller/inventory.controller";
 import { authenticateRequest } from "../../middleware/authenticateRequest";
 import { authorizeRoles } from "../../middleware/authorizeRoles";
@@ -10,6 +11,14 @@ import { acceptOrder, incomingOrders, readyForPickup } from "../controller/order
 import { getStoreStatus, updateStoreStatus } from "../controller/status.controller";
 
 const router = Router();
+
+// POST /inventory/product/:productId
+router.post(
+  "/inventory/product",
+  authenticateRequest,
+  authorizeRoles(["STORE", "ADMIN"]),
+  createInventoryRecord
+);
 
 // GET /inventory/product/:productId
 router.get(

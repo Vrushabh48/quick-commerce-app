@@ -1,6 +1,32 @@
 import { Request, Response } from "express";
 import { prisma } from "../../lib";
 
+export const createInventoryRecord = async (req: Request, res: Response) => {
+  try {
+    const storeId = req.auth!.storeId;
+
+    if (!storeId) {
+      return res.status(403).json({ error: "Store not found" });
+    }
+
+    const { productId, quantity } = req.body;
+    if (!Number.isInteger(productId) || !Number.isInteger(storeId) || !Number.isInteger(quantity) || quantity < 0) {
+      return res.status(400).json({ error: "Invalid input data" });
+    }
+    const newInventory = await prisma.inventory.create({
+      data: {
+        productId,
+        storeId,
+        quantity,
+      },
+    });
+    return res.status(201).json(newInventory);
+  } catch (err: any) {
+    console.error("Create Inventory Error:", err);
+    return res.status(500).json({ error: "Failed to create inventory record" });
+  }
+}
+
 export const getProductInventory = async (req: Request, res: Response) => {
   try {
     const productId = Number(req.params.productId);
@@ -65,8 +91,8 @@ export const updateInventoryQuantity = async (req: Request, res: Response) => {
   try {
     const inventoryId = Number(req.params.inventoryId);
     if (!Number.isInteger(inventoryId)) {
-  return res.status(400).json({ error: "Invalid Inventory" });
-}
+      return res.status(400).json({ error: "Invalid Inventory" });
+    }
 
     const quantity = Number(req.body.quantity);
 
@@ -87,8 +113,13 @@ export const updateInventoryQuantity = async (req: Request, res: Response) => {
 
       return tx.inventory.update({
         where: { id: inventoryId },
-        data: { quantity },
+        data: {
+          quantity: {
+            increment: quantity,
+          },
+        },
       });
+
     });
 
     return res.status(200).json({
