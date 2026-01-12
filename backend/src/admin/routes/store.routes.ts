@@ -1,9 +1,17 @@
 import { Router } from "express";
 import { authenticateRequest } from "../../middleware/authenticateRequest";
 import { authorizeRoles } from "../../middleware/authorizeRoles";
-import { addNewStore, updateStore } from "../controller/store.controller";
+import { addNewStore, CreateStoreAccount, updateStore } from "../controller/store.controller";
 
 const router = Router();
+
+// POST /admin/stores
+router.post(
+  "/admin/store/account",
+  authenticateRequest,
+  authorizeRoles(["ADMIN"]),
+  CreateStoreAccount
+);
 
 // POST /admin/stores
 router.post(

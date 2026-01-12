@@ -83,7 +83,7 @@ export const signup = async (req: Request, res: Response) => {
       });
 
       if (accountRole === Role.RIDER) {
-        await prisma.deliveryPartner.create({
+        await tx.deliveryPartner.create({
           data: {
             accountId: account.id,
             name: "",
