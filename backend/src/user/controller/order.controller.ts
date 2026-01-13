@@ -55,16 +55,23 @@ export const createOrder = async (req: Request, res: Response) => {
         }
       }
 
-      const deliveryAddressId = req.body.deliveryAddressId;
-
+      const deliveryAddressId = await tx.userAddress.findFirst({
+        where: {
+          userId: user.id,
+          isDefault: true,
+        },
+        select: { id: true },
+      });
+    
       // 4. Create order
       const order = await tx.order.create({
         data: {
           userId: user.id,
-          deliveryAddressId:deliveryAddressId, 
+          deliveryAddressId:Number(deliveryAddressId?.id), 
           storeId: cart.storeId,
           totalAmount: cart.total,
           status: "CREATED",
+          paymentStatus: "SUCCESS",
         },
       });
 

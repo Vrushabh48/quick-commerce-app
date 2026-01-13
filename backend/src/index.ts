@@ -12,6 +12,7 @@ import deliveryRoutes from "./delivery/routes/rider.routes";
 import AdminOrder from "./admin/routes/order.routes";
 import adminProductRoutes from "./admin/routes/product.routes";
 import adminStoreRoutes from "./admin/routes/store.routes";
+import orderRoutes from "./user/routes/order.routes";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -47,6 +48,7 @@ app.use("/user", profileRoutes);
 app.use("/user", userProductRoutes);
 app.use("/user", userCartRoutes);
 app.use("/user", userAddressRoutes);
+app.use("/user", orderRoutes);
 
 app.use("/store", storeRoutes);
 
