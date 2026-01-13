@@ -1,6 +1,54 @@
 import { Request, Response } from "express";
 import { prisma } from "../../lib";
 
+export const getAssignedDelivery = async (req: Request, res: Response) => {
+  try {
+    const riderId = req.auth!.partnerId!;
+    const assignment = await prisma.deliveryAssignment.findFirst({
+      where: {
+        partnerId: riderId,
+        status: "ASSIGNED",
+      },  
+      include: {
+        order: {
+          include: {
+            user: {
+              select: {
+                accountId: true,
+              },
+            },
+            deliveryAddress: true,  
+          },
+        },
+      },
+    });
+    if (!assignment) {
+      return res.status(404).json({ error: "No assigned delivery found" });
+    }
+    return res.status(200).json(assignment);
+  } catch (error) {
+    console.error("Get Assigned Delivery Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getAvailableOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await prisma.order.findMany({  
+      where: { status: "READY_FOR_PICKUP" },
+      include: {
+        user: { 
+          select: { accountId: true },
+        },
+        deliveryAddress: true,  
+      },
+    });
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Get Available Orders Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 export async function acceptDelivery(orderId: number, riderId: number) {
   return prisma.$transaction(async (tx) => {

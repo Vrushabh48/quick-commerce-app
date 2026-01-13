@@ -75,6 +75,33 @@ export const createOrder = async (req: Request, res: Response) => {
         },
       });
 
+      const assignRider = async (orderId: number) => {
+        // Placeholder for rider assignment logic
+        const availableRider = await tx.deliveryPartner.findFirst({
+          where: { isAvailable: true },
+        });
+        if (availableRider) {
+          await tx.deliveryAssignment.create({
+            data: {
+              orderId,
+              partnerId: availableRider.id,
+              status: "ASSIGNED",
+            },
+          });
+          await tx.deliveryPartner.update({
+            where: { id: availableRider.id },
+            data: { isAvailable: false },
+          });
+        }
+      };
+
+      await assignRider(order.id);
+
+      //clear cart
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
+
       return order;
     });
 

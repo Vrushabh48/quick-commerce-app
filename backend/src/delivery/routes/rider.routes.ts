@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   updateActiveStatus,
   completeDelivery,
+  getAssignedDelivery,
+  getAvailableOrders,
 } from "../controller/rider.controller";
 import { authenticateRequest } from "../../middleware/authenticateRequest";
 import { authorizeRoles } from "../../middleware/authorizeRoles";
@@ -31,5 +33,26 @@ router.patch(
   authenticateRequest,
   authorizeRoles(["ADMIN"]),
   updateActiveStatus
+);
+
+router.get(
+  "/orders/assigned",
+  authenticateRequest,
+  authorizeRoles(["RIDER"]),
+  getAssignedDelivery
+);
+
+router.get(
+  "/order/available",
+  authenticateRequest,
+  authorizeRoles(["ADMIN", "RIDER"]),
+  getAvailableOrders
+);
+
+router.post(
+  "/order/accept/:orderId",
+  authenticateRequest,
+  authorizeRoles(["ADMIN", "RIDER"]),
+  getAvailableOrders
 );
 export default router;
