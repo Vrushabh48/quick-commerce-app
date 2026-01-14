@@ -1,14 +1,532 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ============================================
+// QUICK COMMERCE - PRODUCTION SCHEMA
+// ============================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ============================================
+// USER MANAGEMENT MODULE
+// ============================================
+
+enum UserRole {
+  CUSTOMER
+  DELIVERY_PARTNER
+  STORE_MANAGER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  phone        String?    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole   @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  // Relations
+  addresses       Address[]
+  orders          Order[]
+  cart            Cart?
+  orderReviews    OrderReview[]
+  deliveryPartner DeliveryPartner?
+  storeManager    StoreManager?
+
+  @@index([email])
+  @@index([phone])
+  @@index([role, status])
+  @@map("users")
+}
+
+model Address {
+  id           String  @id @default(cuid())
+  userId       String
+  label        String // "Home", "Office", etc.
+  addressLine1 String
+  addressLine2 String?
+  landmark     String?
+  city         String
+  state        String
+  pincode      String
+  latitude     Float
+  longitude    Float
+  isDefault    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@index([latitude, longitude])
+  @@index([pincode])
+  @@map("addresses")
+}
+
+// ============================================
+// STORE & INVENTORY MODULE
+// ============================================
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+  TEMPORARILY_CLOSED
+}
+
+model Store {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  status      StoreStatus @default(ACTIVE)
+
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  pincode      String
+  latitude     Float
+  longitude    Float
+
+  phone String
+  email String
+
+  openingTime String // "09:00"
+  closingTime String // "22:00"
+
+  avgDeliveryTime Int // in minutes
+  serviceRadius   Float // in kilometers
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  inventory Inventory[]
+  orders    Order[]
+  managers  StoreManager[]
+
+  @@index([status])
+  @@index([latitude, longitude])
+  @@index([pincode])
+  @@map("stores")
+}
+
+model StoreManager {
+  id      String @id @default(cuid())
+  userId  String @unique
+  storeId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@map("store_managers")
+}
+
+// ============================================
+// PRODUCT CATALOG MODULE
+// ============================================
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  imageUrl    String?
+  parentId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  brandName   String?
+
+  categoryId String
+
+  basePrice Decimal @db.Decimal(10, 2)
+  unit      String // "kg", "piece", "liter"
+
+  imageUrls String[] // Array of image URLs
+
+  status ProductStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  inventory  Inventory[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@map("products")
+}
+
+model Inventory {
+  id        String @id @default(cuid())
+  storeId   String
+  productId String
+
+  quantity    Int @default(0)
+  reservedQty Int @default(0) // For pending orders
+
+  sellingPrice    Decimal  @db.Decimal(10, 2)
+  discountPercent Decimal? @db.Decimal(5, 2)
+
+  isAvailable Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, productId])
+  @@index([storeId])
+  @@index([productId])
+  @@index([isAvailable])
+  @@map("inventory")
+}
+
+// ============================================
+// CART MODULE
+// ============================================
+
+model Cart {
+  id      String  @id @default(cuid())
+  userId  String  @unique
+  storeId String? // Lock cart to a store once first item added
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@index([userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int    @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+// ============================================
+// ORDER MODULE
+// ============================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  COD
+  ONLINE
+  WALLET
+}
+
+model Order {
+  id          String @id @default(cuid())
+  orderNumber String @unique
+
+  userId    String
+  storeId   String
+  addressId String
+
+  status OrderStatus @default(PENDING)
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  deliveryFee Decimal @db.Decimal(10, 2)
+  tax         Decimal @db.Decimal(10, 2)
+  discount    Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+
+  deliveryPartnerId String?
+
+  estimatedDelivery DateTime
+  deliveredAt       DateTime?
+
+  notes              String?
+  cancellationReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id])
+  store           Store            @relation(fields: [storeId], references: [id])
+  address         Address          @relation(fields: [addressId], references: [id])
+  deliveryPartner DeliveryPartner? @relation(fields: [deliveryPartnerId], references: [id])
+
+  items   OrderItem[]
+  events  OrderEvent[]
+  payment Payment?
+  review  OrderReview?
+
+  @@index([userId])
+  @@index([storeId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+// ============================================
+// ORDER EVENTS (Event-Driven Architecture)
+// ============================================
+
+enum EventType {
+  ORDER_CREATED
+  ORDER_CONFIRMED
+  ORDER_PREPARING
+  ORDER_READY_FOR_PICKUP
+  ORDER_ASSIGNED_TO_PARTNER
+  ORDER_PICKED_UP
+  ORDER_OUT_FOR_DELIVERY
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  PAYMENT_COMPLETED
+  PAYMENT_FAILED
+  REFUND_INITIATED
+  REFUND_COMPLETED
+}
+
+model OrderEvent {
+  id        String    @id @default(cuid())
+  orderId   String
+  eventType EventType
+
+  metadata    Json? // Additional event data
+  triggeredBy String? // User/System ID who triggered
+
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("order_events")
+}
+
+// ============================================
+// PAYMENT MODULE
+// ============================================
+
+model Payment {
+  id      String @id @default(cuid())
+  orderId String @unique
+
+  amount Decimal       @db.Decimal(10, 2)
+  status PaymentStatus @default(PENDING)
+  method PaymentMethod
+
+  transactionId   String? @unique
+  gatewayResponse Json?
+
+  paidAt     DateTime?
+  refundedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([transactionId])
+  @@map("payments")
+}
+
+// ============================================
+// DELIVERY PARTNER MODULE
+// ============================================
+
+enum PartnerStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+model DeliveryPartner {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  vehicleType   String // "bike", "scooter"
+  vehicleNumber String
+  licenseNumber String
+
+  status     PartnerStatus @default(OFFLINE)
+  currentLat Float?
+  currentLng Float?
+
+  totalDeliveries Int      @default(0)
+  rating          Decimal? @db.Decimal(3, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([status])
+  @@index([currentLat, currentLng])
+  @@map("delivery_partners")
+}
+
+// ============================================
+// REVIEW & RATING MODULE
+// ============================================
+
+model OrderReview {
+  id      String @id @default(cuid())
+  orderId String @unique
+  userId  String
+
+  // Service Rating
+  serviceRating  Int // 1-5
+  serviceComment String?
+
+  // Delivery Partner Rating
+  deliveryRating  Int? // 1-5 (optional if no delivery partner)
+  deliveryComment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([serviceRating])
+  @@index([deliveryRating])
+  @@map("order_reviews")
+}
+
+// ============================================
+// NOTIFICATIONS (for event-driven system)
+// ============================================
+
+enum NotificationType {
+  ORDER_UPDATE
+  DELIVERY_UPDATE
+  PROMOTIONAL
+  SYSTEM
+}
+
+enum NotificationChannel {
+  PUSH
+  EMAIL
+  SMS
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+
+  type    NotificationType
+  channel NotificationChannel
+
+  title   String
+  message String
+  data    Json?
+
+  isRead Boolean   @default(false)
+  sentAt DateTime? @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
